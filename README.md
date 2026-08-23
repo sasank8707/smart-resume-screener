@@ -4,6 +4,11 @@ A production-quality resume screening platform: upload resumes (PDF/TXT), parse 
 into structured candidate profiles, match them against job descriptions with an LLM,
 and review **ranked, explainable 1–10 match scores** in a clean web dashboard.
 
+## Live Demo
+
+- **Frontend Application**: [https://smart-resume-screener-nu.vercel.app](https://smart-resume-screener-nu.vercel.app)
+- **Backend API**: [https://smart-resume-screener-api-bpfh.onrender.com](https://smart-resume-screener-api-bpfh.onrender.com)
+
 ---
 
 ## Table of contents
