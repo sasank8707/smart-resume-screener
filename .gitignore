@@ -45,3 +45,5 @@ backend/app/uploads/
 *.mp4
 *.mov
 *.webm
+
+*.tsbuildinfo
