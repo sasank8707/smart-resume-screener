@@ -8,3 +8,4 @@ pypdf>=5.1
 httpx>=0.28
 python-multipart>=0.0.17
 alembic>=1.14
+psycopg2-binary>=2.9.9
