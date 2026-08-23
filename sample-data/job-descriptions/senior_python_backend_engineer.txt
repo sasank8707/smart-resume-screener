@@ -1,0 +1,26 @@
+Senior Python Backend Engineer
+
+Location: Remote (India)
+
+About the role
+We are a growing B2B SaaS company building a data-driven platform that
+processes millions of events per day. We are looking for an experienced
+backend engineer to own critical services end to end.
+
+Responsibilities:
+- Design, build and operate reliable REST APIs in Python
+- Improve performance, observability and reliability of our platform
+- Mentor junior engineers and drive engineering best practices
+- Participate in on-call rotation and incident reviews
+
+Requirements:
+- 5+ years of professional software engineering experience
+- Strong Python skills with FastAPI or Django
+- Solid SQL knowledge, PostgreSQL preferred
+- Experience with Docker and CI/CD workflows
+- Bachelor's degree in Computer Science or a related field
+
+Nice-to-have:
+- Kubernetes in production
+- AWS cloud experience
+- Redis or other caching layers

@@ -1,0 +1,30 @@
+Aarav Sharma
+Bengaluru, India
+aarav.sharma@example.com | +91 98765 43210
+
+SUMMARY
+Backend-focused software engineer with 6 years of experience building
+scalable APIs and data platforms in Python. Comfortable owning services
+end to end, from design to production operations.
+
+SKILLS
+Python, FastAPI, Django, PostgreSQL, MySQL, Redis, Docker, Kubernetes,
+AWS, GitHub Actions, REST APIs, Git, Linux, Pandas, SQLAlchemy, Pytest
+
+WORK EXPERIENCE
+Senior Software Engineer at Nimbus Retail Pvt Ltd 2021-06 - Present
+- Designed and operated FastAPI microservices handling 40k requests per minute
+- Migrated a legacy monolith to containerised services on Kubernetes
+- Introduced CI/CD pipelines with GitHub Actions cutting release time by 60%
+- Technologies: Python, FastAPI, PostgreSQL, Docker, Kubernetes, AWS
+
+Software Engineer at Bluepeak Systems 2018-07 - 2021-05
+- Built internal analytics dashboards and ETL jobs using Pandas and Airflow
+- Optimised PostgreSQL queries reducing p95 latency from 900ms to 120ms
+- Wrote unit and integration tests with Pytest raising coverage to 85%
+
+EDUCATION
+B.Tech in Computer Science from Visvesvaraya National Institute of Technology, 2014 - 2018
+
+CERTIFICATIONS
+AWS Certified Developer Associate

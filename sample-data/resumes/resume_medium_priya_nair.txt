@@ -1,0 +1,27 @@
+Priya Nair
+Pune, India
+priya.nair@example.com | +91 91234 56780
+
+SUMMARY
+Python developer with 3 years of experience building web applications
+and internal tools, transitioning from support engineering into
+full-time development.
+
+SKILLS
+Python, Django, MySQL, HTML, CSS, JavaScript, Git, Linux, REST APIs, jQuery
+
+WORK EXPERIENCE
+Software Engineer at Craftwell Solutions 2023-02 - Present
+- Developed and maintained internal inventory tools with Django and MySQL
+- Built reporting endpoints consumed by the finance team
+- Automated weekly data clean-up scripts in Python
+
+Associate Support Engineer at Craftwell Solutions 2022-01 - 2023-01
+- Resolved customer escalations and reproduced defects for the dev team
+- Wrote small Python utilities to triage log files
+
+EDUCATION
+B.Sc in Information Technology from Savitribai Phule Pune University, 2018 - 2021
+
+CERTIFICATIONS
+Django for Everybody Specialization
