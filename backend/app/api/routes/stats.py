@@ -6,29 +6,55 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import engine, get_db
-from app.models import Candidate, JobDescription, ScreeningResult
+from app.models import Candidate, JobDescription, ScreeningResult, User
+from app.api.routes.auth import get_current_user
 from app.schemas import DashboardStats, HealthRead
 
 router = APIRouter(tags=["Dashboard"])
 
 
 @router.get("/stats", response_model=DashboardStats, summary="Dashboard statistics")
-def dashboard_stats(db: Session = Depends(get_db)) -> DashboardStats:
-    total_resumes = db.query(func.count(Candidate.id)).scalar() or 0
-    total_jobs = db.query(func.count(JobDescription.id)).scalar() or 0
-    screened_count = (
-        db.query(func.count(ScreeningResult.candidate_id.distinct())).scalar() or 0
+def dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DashboardStats:
+    total_resumes = (
+        db.query(func.count(Candidate.id))
+        .filter(Candidate.user_id == current_user.id)
+        .scalar()
+        or 0
     )
-    avg_score = db.query(func.avg(ScreeningResult.match_score)).scalar() or 0.0
+    total_jobs = (
+        db.query(func.count(JobDescription.id))
+        .filter(JobDescription.user_id == current_user.id)
+        .scalar()
+        or 0
+    )
+    screened_count = (
+        db.query(func.count(ScreeningResult.candidate_id.distinct()))
+        .filter(ScreeningResult.user_id == current_user.id)
+        .scalar()
+        or 0
+    )
+    avg_score = (
+        db.query(func.avg(ScreeningResult.match_score))
+        .filter(ScreeningResult.user_id == current_user.id)
+        .scalar()
+        or 0.0
+    )
     shortlisted = (
         db.query(func.count(ScreeningResult.id))
-        .filter(ScreeningResult.shortlisted.is_(True))
+        .filter(
+            ScreeningResult.user_id == current_user.id,
+            ScreeningResult.shortlisted.is_(True),
+        )
         .scalar()
         or 0
     )
 
     recent_rows = (
         db.query(ScreeningResult)
+        .filter(ScreeningResult.user_id == current_user.id)
         .order_by(ScreeningResult.updated_at.desc())
         .limit(10)
         .all()
@@ -54,6 +80,7 @@ def dashboard_stats(db: Session = Depends(get_db)) -> DashboardStats:
         total_jobs=total_jobs,
         recent_activity=recent_activity,
     )
+
 
 
 def _provider_status() -> tuple[str, str | None]:

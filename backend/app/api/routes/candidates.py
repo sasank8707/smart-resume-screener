@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.models import Candidate
+from app.models import Candidate, User
+from app.api.routes.auth import get_current_user
 from app.schemas import (
     CandidateDetailRead,
     CandidateRead,
@@ -50,6 +51,7 @@ def _save_upload(data: bytes, safe_name: str) -> None:
 async def upload_resumes(
     files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> UploadResponse:
     settings = get_settings()
     uploaded: list[Candidate] = []
@@ -74,6 +76,7 @@ async def upload_resumes(
             parsed = parse_resume(raw_text)
 
             candidate = Candidate(
+                user_id=current_user.id,
                 candidate_name=parsed["candidate_name"],
                 email=parsed["email"],
                 phone=parsed["phone"],
@@ -124,8 +127,9 @@ def list_candidates(
     q: str | None = Query(default=None, description="Search name/email"),
     skill: str | None = Query(default=None, description="Filter by skill"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> list[Candidate]:
-    query = db.query(Candidate)
+    query = db.query(Candidate).filter(Candidate.user_id == current_user.id)
     if q:
         like = f"%{q.strip()}%"
         query = query.filter(
@@ -142,16 +146,24 @@ def list_candidates(
 
 
 @router.get("/{candidate_id}", response_model=CandidateDetailRead)
-def get_candidate(candidate_id: int, db: Session = Depends(get_db)) -> Candidate:
-    candidate = db.get(Candidate, candidate_id)
+def get_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Candidate:
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id, Candidate.user_id == current_user.id).first()
     if candidate is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Candidate not found.")
     return candidate
 
 
 @router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_candidate(candidate_id: int, db: Session = Depends(get_db)) -> None:
-    candidate = db.get(Candidate, candidate_id)
+def delete_candidate(
+    candidate_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id, Candidate.user_id == current_user.id).first()
     if candidate is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Candidate not found.")
     db.delete(candidate)

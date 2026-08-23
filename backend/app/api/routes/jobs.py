@@ -4,15 +4,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models import JobDescription
+from app.models import JobDescription, User
+from app.api.routes.auth import get_current_user
 from app.schemas import JobCreate, JobListRead, JobRead, JobRequirements, JobUpdate
 from app.services.job_parser import extract_job_requirements
 
 router = APIRouter(prefix="/jobs", tags=["Job Descriptions"])
 
 
-def _get_job_or_404(job_id: int, db: Session) -> JobDescription:
-    job = db.get(JobDescription, job_id)
+def _get_job_or_404(job_id: int, db: Session, current_user: User) -> JobDescription:
+    job = db.query(JobDescription).filter(
+        JobDescription.id == job_id,
+        JobDescription.user_id == current_user.id
+    ).first()
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Job description not found.")
     return job
@@ -24,9 +28,14 @@ def _get_job_or_404(job_id: int, db: Session) -> JobDescription:
     status_code=status.HTTP_201_CREATED,
     summary="Create a job description",
 )
-def create_job(payload: JobCreate, db: Session = Depends(get_db)) -> JobDescription:
+def create_job(
+    payload: JobCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> JobDescription:
     requirements = extract_job_requirements(payload.description_text)
     job = JobDescription(
+        user_id=current_user.id,
         title=payload.title.strip(),
         description_text=payload.description_text.strip(),
         requirements=requirements,
@@ -38,22 +47,35 @@ def create_job(payload: JobCreate, db: Session = Depends(get_db)) -> JobDescript
 
 
 @router.get("", response_model=list[JobListRead], summary="List job descriptions")
-def list_jobs(db: Session = Depends(get_db)) -> list[JobDescription]:
+def list_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[JobDescription]:
     return (
-        db.query(JobDescription).order_by(JobDescription.created_at.desc()).all()
+        db.query(JobDescription)
+        .filter(JobDescription.user_id == current_user.id)
+        .order_by(JobDescription.created_at.desc())
+        .all()
     )
 
 
 @router.get("/{job_id}", response_model=JobRead)
-def get_job(job_id: int, db: Session = Depends(get_db)) -> JobDescription:
-    return _get_job_or_404(job_id, db)
+def get_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> JobDescription:
+    return _get_job_or_404(job_id, db, current_user)
 
 
 @router.patch("/{job_id}", response_model=JobRead)
 def update_job(
-    job_id: int, payload: JobUpdate, db: Session = Depends(get_db)
+    job_id: int,
+    payload: JobUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JobDescription:
-    job = _get_job_or_404(job_id, db)
+    job = _get_job_or_404(job_id, db, current_user)
     if payload.title is not None:
         job.title = payload.title.strip()
     if payload.description_text is not None:
@@ -66,13 +88,22 @@ def update_job(
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_job(job_id: int, db: Session = Depends(get_db)) -> None:
-    job = _get_job_or_404(job_id, db)
+def delete_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    job = _get_job_or_404(job_id, db, current_user)
     db.delete(job)
     db.commit()
 
 
 @router.get("/{job_id}/requirements", response_model=JobRequirements)
-def get_requirements(job_id: int, db: Session = Depends(get_db)) -> JobRequirements:
-    job = _get_job_or_404(job_id, db)
+def get_requirements(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> JobRequirements:
+    job = _get_job_or_404(job_id, db, current_user)
     return JobRequirements.model_validate(job.requirements or {})
+

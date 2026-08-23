@@ -13,12 +13,34 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class User(Base):
+    """System users who own candidates, job descriptions and screening results."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    candidates: Mapped[list["Candidate"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    job_descriptions: Mapped[list["JobDescription"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    screening_results: Mapped[list["ScreeningResult"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
 class Candidate(Base):
     """A uploaded resume plus its structured extraction result."""
 
     __tablename__ = "candidates"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     candidate_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -40,6 +62,7 @@ class Candidate(Base):
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
 
+    user: Mapped[User | None] = relationship(back_populates="candidates")
     screening_results: Mapped[list["ScreeningResult"]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan"
     )
@@ -51,6 +74,7 @@ class JobDescription(Base):
     __tablename__ = "job_descriptions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description_text: Mapped[str] = mapped_column(Text, nullable=False)
 
@@ -64,6 +88,7 @@ class JobDescription(Base):
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
 
+    user: Mapped[User | None] = relationship(back_populates="job_descriptions")
     screening_results: Mapped[list["ScreeningResult"]] = relationship(
         back_populates="job_description", cascade="all, delete-orphan"
     )
@@ -78,6 +103,7 @@ class ScreeningResult(Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id"), nullable=False)
     job_description_id: Mapped[int] = mapped_column(
         ForeignKey("job_descriptions.id"), nullable=False
@@ -103,5 +129,7 @@ class ScreeningResult(Base):
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
 
+    user: Mapped[User | None] = relationship(back_populates="screening_results")
     candidate: Mapped["Candidate"] = relationship(back_populates="screening_results")
     job_description: Mapped["JobDescription"] = relationship(back_populates="screening_results")
+

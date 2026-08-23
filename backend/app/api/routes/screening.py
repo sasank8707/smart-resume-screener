@@ -5,7 +5,8 @@ from sqlalchemy import case
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models import Candidate, JobDescription, ScreeningResult
+from app.models import Candidate, JobDescription, ScreeningResult, User
+from app.api.routes.auth import get_current_user
 from app.schemas import (
     ScreeningRequest,
     ScreeningResultRead,
@@ -23,16 +24,24 @@ router = APIRouter(prefix="/screening", tags=["Screening"])
     summary="Screen selected candidates against a job description",
 )
 def run_screening_endpoint(
-    payload: ScreeningRequest, db: Session = Depends(get_db)
+    payload: ScreeningRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> ScreeningRunResponse:
-    job = db.get(JobDescription, payload.job_description_id)
+    job = db.query(JobDescription).filter(
+        JobDescription.id == payload.job_description_id,
+        JobDescription.user_id == current_user.id
+    ).first()
     if job is None:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND, "Job description not found."
         )
 
     candidates = (
-        db.query(Candidate).filter(Candidate.id.in_(payload.candidate_ids)).all()
+        db.query(Candidate).filter(
+            Candidate.id.in_(payload.candidate_ids),
+            Candidate.user_id == current_user.id
+        ).all()
     )
     if len(candidates) != len(payload.candidate_ids):
         found_ids = {c.id for c in candidates}
@@ -58,6 +67,7 @@ def run_screening_endpoint(
             _to_result_read(r, rank) for rank, r in enumerate(results, start=1)
         ],
     )
+
 
 
 def _to_result_read(result: ScreeningResult, rank: int) -> ScreeningResultRead:
@@ -89,8 +99,9 @@ def list_results(
     ),
     order: str = Query(default="desc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> list[ScreeningResultRead]:
-    query = db.query(ScreeningResult).join(Candidate)
+    query = db.query(ScreeningResult).filter(ScreeningResult.user_id == current_user.id).join(Candidate)
 
     if job_id is not None:
         query = query.filter(ScreeningResult.job_description_id == job_id)
@@ -144,9 +155,14 @@ def list_results(
 
 
 @router.delete("/results/{result_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_result(result_id: int, db: Session = Depends(get_db)) -> None:
-    result = db.get(ScreeningResult, result_id)
+def delete_result(
+    result_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    result = db.query(ScreeningResult).filter(ScreeningResult.id == result_id, ScreeningResult.user_id == current_user.id).first()
     if result is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Screening result not found.")
     db.delete(result)
     db.commit()
+

@@ -16,8 +16,9 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.core.database import SessionLocal, init_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Candidate, JobDescription  # noqa: E402
+from app.models import Candidate, JobDescription, User  # noqa: E402
 from app.services.resume_parser import parse_resume  # noqa: E402
+from app.api.routes.auth import get_current_user  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -26,10 +27,29 @@ def _database():
     yield
 
 
+@pytest.fixture(autouse=True)
+def setup_auth_override(db_session):
+    # Ensure a test user exists
+    user = db_session.query(User).filter(User.id == 1).first()
+    if not user:
+        user = User(id=1, email="test@example.com", hashed_password="mock_password")
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+
+    def override_current_user():
+        return user
+
+    app.dependency_overrides[get_current_user] = override_current_user
+    yield
+    app.dependency_overrides.clear()
+
+
 @pytest.fixture()
 def client():
     with TestClient(app) as test_client:
         yield test_client
+
 
 
 @pytest.fixture()

@@ -9,7 +9,13 @@ const NAV_ITEMS = [
   { to: "/settings", label: "Settings", icon: "⚙" },
 ];
 
-export function Sidebar({ open }: { open: boolean }) {
+interface SidebarProps {
+  open: boolean;
+  userEmail: string | null;
+  onLogout: () => void;
+}
+
+export function Sidebar({ open, userEmail, onLogout }: SidebarProps) {
   return (
     <aside className={`sidebar${open ? " open" : ""}`} data-testid="sidebar">
       <div className="brand">
@@ -35,7 +41,29 @@ export function Sidebar({ open }: { open: boolean }) {
           </NavLink>
         ))}
       </nav>
+      {userEmail && (
+        <div style={{ padding: "15px", borderTop: "1px solid rgba(255,255,255,0.1)", fontSize: "14px", color: "#9ca3af" }}>
+          <div style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", marginBottom: "5px" }}>
+            👤 {userEmail}
+          </div>
+          <button
+            onClick={onLogout}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#f87171",
+              cursor: "pointer",
+              padding: "0",
+              fontSize: "14px",
+              textDecoration: "underline"
+            }}
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
       <div className="sidebar-footer">v1.0 · local workspace</div>
     </aside>
   );
 }
+

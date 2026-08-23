@@ -260,6 +260,7 @@ def persist_screening_result(
         candidate_id=candidate.id,
         job_description_id=job.id,
     )
+    result.user_id = job.user_id
     result.match_score = float(outcome.result.match_score)
     result.shortlisted = result.match_score >= threshold
     result.explanation = outcome.result.explanation

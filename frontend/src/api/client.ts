@@ -8,6 +8,8 @@ import type {
   ScreeningResult,
   ScreeningRunResponse,
   UploadResponse,
+  User,
+  TokenResponse,
 } from "../types";
 
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? "/api";
@@ -24,9 +26,18 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = localStorage.getItem("token");
+  const headers = new Headers(init?.headers);
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, init);
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers,
+    });
   } catch {
     throw new ApiError({
       message: "Cannot reach the server. Is the backend running?",
@@ -70,6 +81,7 @@ function jsonInit(method: string, payload: unknown): RequestInit {
     body: JSON.stringify(payload),
   };
 }
+
 
 export interface ResultsQuery {
   job_id?: number | null;
@@ -141,4 +153,9 @@ export const api = {
     const qs = search.toString();
     return request<ScreeningResult[]>(`/screening/results${qs ? `?${qs}` : ""}`);
   },
+
+  register: (payload: any) => request<User>("/auth/register", jsonInit("POST", payload)),
+  login: (payload: any) => request<TokenResponse>("/auth/login", jsonInit("POST", payload)),
+  me: () => request<User>("/auth/me"),
 };
+
