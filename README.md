@@ -301,15 +301,18 @@ Main endpoints:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| POST | `/api/candidates/upload` | Batch-upload PDF/TXT resumes |
-| GET | `/api/candidates?q=&skill=` | List/search candidates |
-| GET | `/api/candidates/{id}` | Full candidate detail incl. raw text |
-| DELETE | `/api/candidates/{id}` | Delete candidate + their results |
-| POST/GET/PATCH/DELETE | `/api/jobs[...]` | Job description CRUD |
-| POST | `/api/screening/run` | Screen candidates against a job |
-| GET | `/api/screening/results?min_score=&shortlisted_only=&skill=&q=&sort_by=&order=` | Filter/sort results |
-| GET | `/api/stats` | Dashboard statistics |
-| GET | `/api/health` | Health + active LLM provider |
+| POST | `/api/auth/register` | Register a new user account |
+| POST | `/api/auth/login` | Log in and obtain JWT access token |
+| GET | `/api/auth/me` | Fetch authenticated user details |
+| POST | `/api/candidates/upload` | Batch-upload PDF/TXT resumes (Private to user) |
+| GET | `/api/candidates?q=&skill=` | List/search candidates (Private to user) |
+| GET | `/api/candidates/{id}` | Full candidate detail incl. raw text (Private to user) |
+| DELETE | `/api/candidates/{id}` | Delete candidate + their results (Private to user) |
+| POST/GET/PATCH/DELETE | `/api/jobs[...]` | Job description CRUD (Private to user) |
+| POST | `/api/screening/run` | Screen candidates against a job (Private to user) |
+| GET | `/api/screening/results?min_score=&shortlisted_only=&skill=&q=&sort_by=&order=` | Filter/sort results (Private to user) |
+| GET | `/api/stats` | Dashboard statistics (Private to user) |
+| GET | `/api/health` | Health + active LLM provider (Public) |
 
 Errors return a uniform envelope:
 `{"error": {"message": "...", "status": 422}}` — internal exceptions are logged
@@ -318,27 +321,36 @@ server-side but never exposed to clients.
 ## Example workflow
 
 ```bash
-# 1. Upload resumes
-curl -F "files=@sample-data/resumes/resume_strong_aarav_sharma.pdf" \
-     -F "files=@sample-data/resumes/resume_medium_priya_nair.txt" \
+# 1. Register a user
+curl -X POST http://localhost:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"securepassword"}'
+
+# 2. Login to get token
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"securepassword"}'
+# Keep the token for subsequent requests
+
+# 3. Upload resumes
+curl -H "Authorization: Bearer <token>" \
+     -F "files=@sample-data/resumes/resume_strong_aarav_sharma.pdf" \
      http://localhost:8000/api/candidates/upload
 
-# 2. Create a job description (paste any posting ≥30 chars)
+# 4. Create a job description (paste any posting ≥30 chars)
 curl -X POST http://localhost:8000/api/jobs \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"title":"Senior Python Backend Engineer","description_text":"<paste>"}'
 
-# 3. Screen candidates 1 and 2 against job 1 at threshold 7
+# 5. Screen candidates 1 against job 1
 curl -X POST http://localhost:8000/api/screening/run \
+  -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"job_description_id":1,"candidate_ids":[1,2],"threshold":7}'
-
-# 4. Read ranked, shortlisted results
-curl "http://localhost:8000/api/screening/results?shortlisted_only=true"
+  -d '{"job_description_id":1,"candidate_ids":[1]}'
 ```
 
-Or do the same in five clicks in the UI: **Upload Resumes → Job Descriptions →
-Screening Results → Run → inspect the ranked table.**
+Or do the same in the UI: **Register/Sign In → Upload Resumes → Job Descriptions → Screening Results → Run → inspect the ranked table.**
 
 Sample data: `sample-data/resumes/` contains fictional strong (Aarav Sharma),
 medium (Priya Nair) and weak (Rohan Mehta) candidates as TXT *and* generated PDFs,
@@ -376,20 +388,19 @@ Record with the sample dataset pre-loaded (or load it live — it's fast):
 
 ## Deployment
 
-See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the full guide. Summary:
+The project is fully configured and live in production:
 
-- **Backend** → Render free tier via [`render.yaml`](render.yaml) (FastAPI +
-  PostgreSQL add-on, env vars set in the dashboard).
-- **Frontend** → Vercel/Netlify static hosting of `frontend/dist` via
-  [`frontend/vercel.json`](frontend/vercel.json); set `VITE_API_URL` to the backend
-  URL at build time.
-- All secrets live only in platform environment dashboards — never in the repo.
+- **Live Frontend Application**: [https://smart-resume-screener-nu.vercel.app](https://smart-resume-screener-nu.vercel.app) (Deploys static build to Vercel via [`frontend/vercel.json`](frontend/vercel.json) with `VITE_API_URL` pointing to the Render endpoint).
+- **Live Backend API**: [https://smart-resume-screener-api-bpfh.onrender.com](https://smart-resume-screener-api-bpfh.onrender.com) (Deploys FastAPI web service to Render via [`render.yaml`](render.yaml)).
+- **Database**: PostgreSQL database provisioned on Render, persistent database migrations executed via Alembic on startup.
+- All secrets and API keys are stored securely in platform dashboards — never in the repository.
 
 ## Future improvements
 
 - Async background screening (task queue) for large batches with live progress.
 - OCR fallback (e.g. Tesseract) for scanned-image PDFs.
-- Per-user accounts, roles and multi-tenancy with auth (JWT/OAuth).
+- Role-based access controls (RBAC) for recruiter teams.
 - Score calibration reports: compare LLM recommendations vs recruiter outcomes.
 - Resume–job keyword highlighting in the UI for faster human verification.
 - Docker Compose file for one-command self-hosting.
+
